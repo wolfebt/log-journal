@@ -286,15 +286,31 @@
 </head>
 <body>
     <!-- App Header -->
-    <header class="app-header flex justify-center items-center">
+    <header class="app-header flex justify-between items-center px-4">
+        <div class="w-24"></div> <!-- Left Spacer -->
         <div class="text-center">
             <h1 class="text-xl font-bold text-gray-100 whitespace-nowrap">LOG JOURNAL</h1>
             <p class="text-xs text-gray-400 uppercase">A Personal Digital Log</p>
         </div>
+        <div class="w-24 flex justify-end">
+             <button id="sign-out-btn" class="btn btn-secondary hidden">Sign Out</button>
+        </div>
     </header>
     
-    <!-- Main App Container -->
-    <div class="app-container">
+    <!-- Login Container -->
+    <div id="login-container" class="flex items-center justify-center min-h-screen">
+        <div class="text-center p-8 bg-gray-800 rounded-lg shadow-lg">
+            <h1 class="text-2xl font-bold text-gray-100 mb-2">Log Journal</h1>
+            <p class="text-gray-400 mb-6">Sign in with Google to continue</p>
+            <button id="google-signin-btn" class="btn btn-primary flex items-center justify-center w-full max-w-xs mx-auto">
+                <svg class="w-6 h-6 mr-3" viewBox="0 0 48 48"><path fill="#4285F4" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#34A853" d="M43.611 20.083H24v8h11.303c-1.649 4.657-6.08 8-11.303 8V44c5.268 0 10.046-1.947 13.611-5.657c3.566-3.71 5.657-8.854 5.657-14.426c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#FBBC05" d="M9.961 18.309c-1.237 2.334-1.961 4.96-1.961 7.691s.724 5.357 1.961 7.691l-5.657 5.657C2.345 34.046 0 29.268 0 24s2.345-10.046 6.304-13.696z"></path><path fill="#EA4335" d="M24 36c-5.221 0-9.657-3.341-11.303-8h-8.697c1.649 4.657 6.08 8 11.303 8s9.657-3.341 11.303-8h8.697c-1.649 4.657-6.08 8-11.303 8z"></path></svg>
+                Sign in with Google
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App Container (initially hidden) -->
+    <div class="app-container hidden">
         <!-- Main Content Area -->
         <main id="main-content"></main>
     </div>
@@ -360,11 +376,10 @@
     <script type="module">
         // --- Firebase SDK Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         // --- Firebase Configuration & Initialization ---
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
         const firebaseConfig = {
           apiKey: "AIzaSyDIOV7lbfI5YsN_2LG_dSg-xNMSEqz2PM0",
           authDomain: "log-journal-95f36.firebaseapp.com",
@@ -402,6 +417,10 @@
         };
         
         // --- UI Element References ---
+        const loginContainer = document.getElementById('login-container');
+        const googleSignInBtn = document.getElementById('google-signin-btn');
+        const signOutBtn = document.getElementById('sign-out-btn');
+        const appContainer = document.querySelector('.app-container');
         const mainContentContainer = document.getElementById('main-content');
         const entryModal = document.getElementById('entry-modal');
         const modalTitle = document.getElementById('modal-title');
@@ -477,6 +496,12 @@
                     if (sortedEntries.length > 0) {
                        displayJournalEntry(sortedEntries[0].id);
                     }
+                } else {
+                    // Handle case with no entries
+                    const entryTitle = document.getElementById('journal-entry-title');
+                    const entryBody = document.getElementById('journal-entry-body');
+                    if(entryTitle) entryTitle.textContent = 'Welcome!';
+                    if(entryBody) entryBody.innerHTML = '<p class="text-gray-400">Create your first log entry to get started.</p>';
                 }
             }, (error) => {
                 showError("Could not connect to the database. Please check your connection and refresh.");
@@ -636,12 +661,12 @@
             
             // Setup Data Dropdown Menu
             const modalDataDropdown = document.getElementById('modal-data-dropdown');
-            let dropdownHtml = `<button id="modal-save-btn" class="btn btn-primary w-full text-left">Save</button>`;
+            let dropdownHtml = `<button id="modal-save-btn">Save</button>`;
             if (entryId) {
-                dropdownHtml += `<button id="modal-print-btn" class="btn btn-secondary w-full text-left mt-1">Print</button>`;
-                dropdownHtml += `<button id="modal-delete-btn" class="btn btn-danger w-full text-left mt-1">Delete</button>`;
+                dropdownHtml += `<button id="modal-print-btn">Print</button>`;
+                dropdownHtml += `<button id="modal-delete-btn" class="text-red-400 hover:!bg-red-800">Delete</button>`;
             }
-            dropdownHtml += `<button id="modal-close-btn" class="btn btn-secondary w-full text-left mt-1">Close</button>`;
+            dropdownHtml += `<button id="modal-close-btn">Close</button>`;
             modalDataDropdown.innerHTML = dropdownHtml;
 
             document.getElementById('modal-save-btn').addEventListener('click', () => entryForm.requestSubmit());
@@ -763,32 +788,61 @@
         function hideErrorModal() { errorModal.classList.add('hidden'); }
         function hideUnsavedChangesModal() { unsavedChangesModal.classList.add('hidden'); }
 
-        // --- Global Event Listeners & Auth ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                appState.userId = user.uid;
-            } else {
-                try {
-                    await signInAnonymously(auth);
-                } catch (error) {
-                     showError("Could not start a session. Please check your connection or browser settings.");
-                     console.error("Auth error:", error);
-                }
+        // --- Authentication Logic ---
+        async function handleGoogleSignIn() {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error("Google Sign-In Error:", error);
+                showError("Could not sign in with Google. Please try again.");
             }
-            
-            if (!appState.authReady && auth.currentUser) {
-                 appState.userId = auth.currentUser.uid;
-                 appState.authReady = true;
-                 renderJournalView();
-                 listenForJournalEntries();
+        }
+
+        async function handleSignOut() {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error("Sign Out Error:", error);
+                showError("Error signing out.");
+            }
+        }
+
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                // User is signed in.
+                appState.userId = user.uid;
+                
+                loginContainer.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                signOutBtn.classList.remove('hidden');
+
+                if (!appState.authReady) {
+                    appState.authReady = true;
+                    renderJournalView();
+                    listenForJournalEntries();
+                }
+            } else {
+                // User is signed out.
+                appState.userId = null;
+                appState.authReady = false;
+                if(appState.unsubscribe) appState.unsubscribe(); // Stop listening to firestore
+                appState.journalEntries = [];
+                appState.currentEntryId = null;
+
+                loginContainer.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+                signOutBtn.classList.add('hidden');
+                mainContentContainer.innerHTML = ''; // Clear main content
             }
         });
-
-        entryForm.addEventListener('submit', handleFormSubmit);
         
+        // --- Global Event Listeners ---
+        googleSignInBtn.addEventListener('click', handleGoogleSignIn);
+        signOutBtn.addEventListener('click', handleSignOut);
+        entryForm.addEventListener('submit', handleFormSubmit);
         deleteConfirmOkBtn.addEventListener('click', deleteCurrentEntry);
         deleteConfirmCancelBtn.addEventListener('click', () => deleteConfirmModal.classList.add('hidden'));
-
         unsavedCancelBtn.addEventListener('click', hideUnsavedChangesModal);
         unsavedDiscardBtn.addEventListener('click', () => {
             hideUnsavedChangesModal();
@@ -798,7 +852,6 @@
             entryForm.requestSubmit();
             hideUnsavedChangesModal();
         });
-
         errorOkBtn.addEventListener('click', hideErrorModal);
 
         window.addEventListener('click', (event) => {
