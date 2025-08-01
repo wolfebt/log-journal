@@ -14,7 +14,7 @@
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 
     <style>
-        /* --- Global Theme (Identical to Rules Codex) --- */
+        /* --- Global Theme --- */
         :root {
             --bg-main: #212121;
             --bg-section: #333333;
@@ -140,6 +140,53 @@
             cursor: pointer;
         }
         .entry-link:hover { color: #90cdf4; }
+        
+        /* --- File Menu for Modal --- */
+        .file-menu {
+            position: relative;
+            display: inline-block;
+        }
+        .file-menu-button {
+             background-color: var(--bg-section);
+            border: 2px solid var(--border-main);
+            transition: all 0.2s ease;
+            font-weight: bold;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+        }
+        .file-menu-button:hover {
+            border-color: var(--border-focus);
+            background-color: var(--bg-hover);
+        }
+        .file-menu-dropdown {
+            display: none;
+            position: absolute;
+            left: 0;
+            background-color: var(--bg-section);
+            min-width: 160px;
+            border: 2px solid var(--border-main);
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 101;
+            border-radius: 5px;
+            padding: 0.5rem 0;
+        }
+        .file-menu-dropdown.show {
+            display: block;
+        }
+        .file-menu-dropdown button {
+            color: var(--text-light);
+            padding: 0.75rem 1rem;
+            text-decoration: none;
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .file-menu-dropdown button:hover {
+            background-color: var(--bg-hover);
+        }
 
         /* --- Content-Specific Styles --- */
         .entry-content h2 {
@@ -180,13 +227,20 @@
             text-transform: uppercase;
         }
         .btn:hover { text-shadow: none; }
+        .btn:disabled {
+            background-color: var(--bg-input);
+            border-color: var(--border-subtle);
+            color: var(--text-subtle);
+            cursor: not-allowed;
+            text-shadow: none;
+        }
         
         .btn-primary { background-color: var(--btn-primary-bg); border-color: var(--btn-primary-border); color: var(--text-light); }
-        .btn-primary:hover { background-color: var(--btn-primary-hover-bg); border-color: var(--btn-primary-hover-border); }
+        .btn-primary:hover:not(:disabled) { background-color: var(--btn-primary-hover-bg); border-color: var(--btn-primary-hover-border); }
         .btn-danger { background-color: var(--bg-danger); border-color: var(--btn-danger-border); color: var(--text-light); }
-        .btn-danger:hover { background-color: var(--bg-danger-hover); border-color: var(--btn-danger-hover-border); }
+        .btn-danger:hover:not(:disabled) { background-color: var(--bg-danger-hover); border-color: var(--btn-danger-hover-border); }
         .btn-secondary { background-color: var(--bg-section); border-color: var(--text-subtle); color: var(--text-light); }
-        .btn-secondary:hover { background-color: var(--bg-hover); border-color: var(--border-focus); }
+        .btn-secondary:hover:not(:disabled) { background-color: var(--bg-hover); border-color: var(--border-focus); }
 
         /* Quill Dark Theme Overrides */
         .ql-toolbar {
@@ -232,15 +286,31 @@
 </head>
 <body>
     <!-- App Header -->
-    <header class="app-header flex justify-center items-center">
+    <header class="app-header flex justify-between items-center px-4">
+        <div class="w-24"></div> <!-- Left Spacer -->
         <div class="text-center">
             <h1 class="text-xl font-bold text-gray-100 whitespace-nowrap">LOG JOURNAL</h1>
             <p class="text-xs text-gray-400 uppercase">A Personal Digital Log</p>
         </div>
+        <div class="w-24 flex justify-end">
+             <button id="sign-out-btn" class="btn btn-secondary hidden">Sign Out</button>
+        </div>
     </header>
     
-    <!-- Main App Container -->
-    <div class="app-container">
+    <!-- Login Container -->
+    <div id="login-container" class="flex items-center justify-center min-h-screen">
+        <div class="text-center p-8 bg-gray-800 rounded-lg shadow-lg">
+            <h1 class="text-2xl font-bold text-gray-100 mb-2">Log Journal</h1>
+            <p class="text-gray-400 mb-6">Sign in with Google to continue</p>
+            <button id="google-signin-btn" class="btn btn-primary flex items-center justify-center w-full max-w-xs mx-auto">
+                <svg class="w-6 h-6 mr-3" viewBox="0 0 48 48"><path fill="#4285F4" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#34A853" d="M43.611 20.083H24v8h11.303c-1.649 4.657-6.08 8-11.303 8V44c5.268 0 10.046-1.947 13.611-5.657c3.566-3.71 5.657-8.854 5.657-14.426c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#FBBC05" d="M9.961 18.309c-1.237 2.334-1.961 4.96-1.961 7.691s.724 5.357 1.961 7.691l-5.657 5.657C2.345 34.046 0 29.268 0 24s2.345-10.046 6.304-13.696z"></path><path fill="#EA4335" d="M24 36c-5.221 0-9.657-3.341-11.303-8h-8.697c1.649 4.657 6.08 8 11.303 8s9.657-3.341 11.303-8h8.697c-1.649 4.657-6.08 8-11.303 8z"></path></svg>
+                Sign in with Google
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App Container (initially hidden) -->
+    <div class="app-container hidden">
         <!-- Main Content Area -->
         <main id="main-content"></main>
     </div>
@@ -248,35 +318,46 @@
     <!-- Main Entry Modal -->
     <div id="entry-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
         <div class="modal-content w-3/4 max-w-6xl max-h-[90vh] overflow-y-auto flex flex-col relative">
-             <button id="modal-explicit-close-btn" class="absolute top-2 right-2 btn btn-secondary !p-2 z-10">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                   <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                </svg>
-            </button>
             <div class="p-8">
-                <h2 id="modal-title" class="text-2xl font-bold text-center mb-6">Manage Entry</h2>
+                <div class="flex justify-between items-center mb-6">
+                    <div class="file-menu">
+                        <button id="modal-data-btn" class="file-menu-button">DATA</button>
+                        <div id="modal-data-dropdown" class="file-menu-dropdown"></div>
+                    </div>
+                    <h2 id="modal-title" class="text-2xl font-bold">Manage Entry</h2>
+                    <div class="w-24"></div> <!-- Spacer -->
+                </div>
                 <form id="entry-form">
                     <div id="form-fields" class="space-y-6">
                         <!-- Form fields are dynamically generated here -->
-                    </div>
-                    <div class="flex justify-end gap-4 mt-8">
-                        <button type="button" id="modal-cancel-btn" class="btn btn-secondary">Cancel</button>
-                        <button type="button" id="modal-delete-btn" class="btn btn-danger hidden">Delete</button>
-                        <button type="submit" class="btn btn-primary">Save</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
     
-    <!-- Confirmation Modal -->
-    <div id="confirm-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
-        <div class="modal-content w-full max-w-md p-8">
-            <h2 id="confirm-title" class="text-xl font-bold mb-4">Are you sure?</h2>
-            <p id="confirm-message" class="text-gray-400 mb-6">This action cannot be undone.</p>
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-confirm-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-lg p-8">
+            <h2 class="text-xl font-bold mb-4">Confirm Deletion</h2>
+            <p id="delete-confirm-message" class="text-gray-400 mb-4">This action is permanent. To confirm, please type the full title of the entry: <strong id="delete-confirm-title" class="text-light"></strong></p>
+            <input type="text" id="delete-confirm-input" class="global-form-input mb-6" placeholder="Type title to confirm...">
             <div class="flex justify-end gap-2">
-                <button id="confirm-cancel-btn" class="btn btn-secondary">CANCEL</button>
-                <button id="confirm-ok-btn" class="btn btn-danger">CONFIRM</button>
+                <button id="delete-confirm-cancel-btn" class="btn btn-secondary">CANCEL</button>
+                <button id="delete-confirm-ok-btn" class="btn btn-danger" disabled>DELETE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unsaved Changes Modal -->
+    <div id="unsaved-changes-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-lg p-8">
+            <h2 class="text-xl font-bold mb-4">Unsaved Changes</h2>
+            <p class="text-gray-400 mb-6">You have unsaved changes. Are you sure you want to continue?</p>
+            <div class="flex justify-end gap-3">
+                <button id="unsaved-cancel-btn" class="btn btn-secondary">CANCEL</button>
+                <button id="unsaved-discard-btn" class="btn btn-danger">DISCARD</button>
+                <button id="unsaved-save-btn" class="btn btn-primary">SAVE & CLOSE</button>
             </div>
         </div>
     </div>
@@ -293,6 +374,27 @@
     </div>
 
     <script type="module">
+        // --- Firebase SDK Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+        import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+        // --- Firebase Configuration & Initialization ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyDIOV7lbfI5YsN_2LG_dSg-xNMSEqz2PM0",
+          authDomain: "log-journal-95f36.firebaseapp.com",
+          projectId: "log-journal-95f36",
+          storageBucket: "log-journal-95f36.appspot.com",
+          messagingSenderId: "756913638787",
+          appId: "1:756913638787:web:7f005c9406b09468e1bab6",
+          measurementId: "G-WPBTFBQ5SS"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        setLogLevel('debug');
+
         // --- Application Configuration ---
         const entryConfig = {
             label: 'Journal Entry',
@@ -305,24 +407,34 @@
 
         // --- Application State ---
         const appState = {
+            userId: null,
+            authReady: false,
             editingEntryId: null,
-            confirmCallback: null,
             journalEntries: [],
             currentEntryId: null,
+            initialFormState: null,
+            unsubscribe: null, // To store the onSnapshot listener
         };
         
         // --- UI Element References ---
+        const loginContainer = document.getElementById('login-container');
+        const googleSignInBtn = document.getElementById('google-signin-btn');
+        const signOutBtn = document.getElementById('sign-out-btn');
+        const appContainer = document.querySelector('.app-container');
         const mainContentContainer = document.getElementById('main-content');
         const entryModal = document.getElementById('entry-modal');
         const modalTitle = document.getElementById('modal-title');
         const entryForm = document.getElementById('entry-form');
         const formFieldsContainer = document.getElementById('form-fields');
-        const modalCancelBtn = document.getElementById('modal-cancel-btn');
-        const modalDeleteBtn = document.getElementById('modal-delete-btn');
-        const confirmModal = document.getElementById('confirm-modal');
-        const confirmMessage = document.getElementById('confirm-message');
-        const confirmOkBtn = document.getElementById('confirm-ok-btn');
-        const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+        const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+        const deleteConfirmTitle = document.getElementById('delete-confirm-title');
+        const deleteConfirmInput = document.getElementById('delete-confirm-input');
+        const deleteConfirmOkBtn = document.getElementById('delete-confirm-ok-btn');
+        const deleteConfirmCancelBtn = document.getElementById('delete-confirm-cancel-btn');
+        const unsavedChangesModal = document.getElementById('unsaved-changes-modal');
+        const unsavedCancelBtn = document.getElementById('unsaved-cancel-btn');
+        const unsavedDiscardBtn = document.getElementById('unsaved-discard-btn');
+        const unsavedSaveBtn = document.getElementById('unsaved-save-btn');
         const errorModal = document.getElementById('error-modal');
         const errorMessage = document.getElementById('error-message');
         const errorOkBtn = document.getElementById('error-ok-btn');
@@ -357,26 +469,44 @@
                 }
             });
             document.getElementById('search-input').addEventListener('input', renderJournalDirectory);
-            loadJournalEntries();
         }
 
-        // --- Data Handling & Local Storage ---
-        function loadJournalEntries() {
-            const entriesJSON = localStorage.getItem('logJournalEntries');
-            appState.journalEntries = entriesJSON ? JSON.parse(entriesJSON) : [];
-            renderJournalDirectory();
-            if (appState.currentEntryId && appState.journalEntries.some(e => e.id === appState.currentEntryId)) {
-                displayJournalEntry(appState.currentEntryId);
-            } else if (appState.journalEntries.length > 0) {
-                const sortedEntries = [...appState.journalEntries].sort((a, b) => b.createdAt - a.createdAt);
-                if (sortedEntries.length > 0) {
-                   displayJournalEntry(sortedEntries[0].id);
+        // --- Data Handling & Firestore ---
+        function listenForJournalEntries() {
+            if (appState.unsubscribe) appState.unsubscribe(); // Detach old listener if exists
+            if (!appState.userId) return;
+
+            const entriesCollection = collection(db, 'artifacts', firebaseConfig.projectId, 'users', appState.userId, 'entries');
+            appState.unsubscribe = onSnapshot(entriesCollection, (snapshot) => {
+                appState.journalEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Convert Firestore Timestamps to readable strings
+                appState.journalEntries.forEach(entry => {
+                    if (entry.createdAt && entry.createdAt.toDate) {
+                        entry.datetime = entry.createdAt.toDate().toLocaleString([], { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    }
+                });
+
+                renderJournalDirectory();
+
+                if (appState.currentEntryId && appState.journalEntries.some(e => e.id === appState.currentEntryId)) {
+                    displayJournalEntry(appState.currentEntryId);
+                } else if (appState.journalEntries.length > 0) {
+                    const sortedEntries = [...appState.journalEntries].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                    if (sortedEntries.length > 0) {
+                       displayJournalEntry(sortedEntries[0].id);
+                    }
+                } else {
+                    // Handle case with no entries
+                    const entryTitle = document.getElementById('journal-entry-title');
+                    const entryBody = document.getElementById('journal-entry-body');
+                    if(entryTitle) entryTitle.textContent = 'Welcome!';
+                    if(entryBody) entryBody.innerHTML = '<p class="text-gray-400">Create your first log entry to get started.</p>';
                 }
-            }
-        }
-
-        function saveJournalEntries() {
-            localStorage.setItem('logJournalEntries', JSON.stringify(appState.journalEntries));
+            }, (error) => {
+                showError("Could not connect to the database. Please check your connection and refresh.");
+                console.error("Firestore listener error:", error);
+            });
         }
 
         function renderJournalDirectory() {
@@ -403,7 +533,11 @@
                 });
             }
 
-            const sortedEntries = [...filteredEntries].sort((a, b) => b.createdAt - a.createdAt);
+            const sortedEntries = [...filteredEntries].sort((a, b) => {
+                const timeA = a.createdAt?.seconds || 0;
+                const timeB = b.createdAt?.seconds || 0;
+                return timeB - timeA;
+            });
 
             if (sortedEntries.length === 0) {
                 container.innerHTML = `<p class="text-center text-sm text-subtle">No entries found.</p>`;
@@ -454,6 +588,26 @@
         }
 
         // --- Modal & Form Logic ---
+        function getFormState() {
+            if (!entryForm) return null;
+            const formData = new FormData(entryForm);
+            const data = Object.fromEntries(formData.entries());
+            return JSON.stringify(data);
+        }
+
+        function isFormDirty() {
+            if (entryModal.classList.contains('hidden')) return false;
+            return appState.initialFormState !== getFormState();
+        }
+
+        function attemptToCloseModal() {
+            if (isFormDirty()) {
+                unsavedChangesModal.classList.remove('hidden');
+            } else {
+                closeModal();
+            }
+        }
+
         function createFormFieldHtml(fieldKey, fieldConfig, savedValue) {
             const labelText = (fieldConfig.label || fieldKey.replace(/_/g, ' ')).toUpperCase();
             let fieldHtml = '';
@@ -480,7 +634,7 @@
             }).join('');
             formFieldsContainer.innerHTML = formHtml;
 
-            // Initialize Quill editor for the 'content' field
+            // Initialize Quill editor
             const editorContainer = formFieldsContainer.querySelector('#editor-content');
             if (editorContainer) {
                 const hiddenInput = document.getElementById('content');
@@ -500,53 +654,88 @@
                 });
                 quill.root.innerHTML = data.content || '';
                 hiddenInput.value = data.content || '';
-                quill.on('text-change', () => { hiddenInput.value = quill.root.innerHTML; });
+                quill.on('text-change', () => { 
+                    hiddenInput.value = quill.root.innerHTML; 
+                });
             }
             
-            modalDeleteBtn.classList.toggle('hidden', !entryId);
+            // Setup Data Dropdown Menu
+            const modalDataDropdown = document.getElementById('modal-data-dropdown');
+            let dropdownHtml = `<button id="modal-save-btn">Save</button>`;
+            if (entryId) {
+                dropdownHtml += `<button id="modal-print-btn">Print</button>`;
+                dropdownHtml += `<button id="modal-delete-btn" class="text-red-400 hover:!bg-red-800">Delete</button>`;
+            }
+            dropdownHtml += `<button id="modal-close-btn">Close</button>`;
+            modalDataDropdown.innerHTML = dropdownHtml;
+
+            document.getElementById('modal-save-btn').addEventListener('click', () => entryForm.requestSubmit());
+            document.getElementById('modal-close-btn').addEventListener('click', attemptToCloseModal);
+            if (entryId) {
+                document.getElementById('modal-print-btn').addEventListener('click', handlePrint);
+                document.getElementById('modal-delete-btn').addEventListener('click', showDeleteConfirmation);
+            }
+
             entryModal.classList.remove('hidden');
+            
+            setTimeout(() => {
+                appState.initialFormState = getFormState();
+            }, 0);
         }
 
         function closeModal() {
             appState.editingEntryId = null;
+            appState.initialFormState = null;
             entryForm.reset();
             entryModal.classList.add('hidden');
         }
 
-        function handleFormSubmit(e) {
+        async function handleFormSubmit(e) {
             e.preventDefault();
+            if (!appState.userId) return showError("You must be signed in to save entries.");
+
             const formData = new FormData(entryForm);
             const data = Object.fromEntries(formData.entries());
             
-            if (appState.editingEntryId) {
-                // Update existing entry
-                const index = appState.journalEntries.findIndex(e => e.id === appState.editingEntryId);
-                if (index !== -1) {
-                    appState.journalEntries[index] = { ...appState.journalEntries[index], ...data };
+            const entriesCollection = collection(db, 'artifacts', firebaseConfig.projectId, 'users', appState.userId, 'entries');
+
+            try {
+                if (appState.editingEntryId) {
+                    const docRef = doc(db, entriesCollection.path, appState.editingEntryId);
+                    await updateDoc(docRef, data);
+                } else {
+                    data.createdAt = serverTimestamp();
+                    const newDocRef = await addDoc(entriesCollection, data);
+                    appState.currentEntryId = newDocRef.id;
                 }
-            } else {
-                // Create new entry
-                data.id = `entry_${Date.now()}`;
-                data.createdAt = Date.now(); // For reliable sorting
-                data.datetime = new Date().toLocaleString([], { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-                appState.journalEntries.push(data);
-                appState.currentEntryId = data.id;
+                closeModal();
+            } catch (error) {
+                showError("Failed to save entry. Please try again.");
+                console.error("Firestore save error:", error);
             }
-            
-            saveJournalEntries();
-            loadJournalEntries();
-            displayJournalEntry(appState.currentEntryId);
-            closeModal();
         }
 
-        function deleteCurrentEntry() {
-            if (!appState.editingEntryId) return;
+        function showDeleteConfirmation() {
+            const entry = appState.journalEntries.find(e => e.id === appState.editingEntryId);
+            if (!entry) return;
 
-            showConfirmModal('Are you sure you want to delete this log entry?', () => {
-                appState.journalEntries = appState.journalEntries.filter(e => e.id !== appState.editingEntryId);
-                saveJournalEntries();
+            deleteConfirmTitle.textContent = entry.title;
+            deleteConfirmInput.value = '';
+            deleteConfirmOkBtn.disabled = true;
+            deleteConfirmModal.classList.remove('hidden');
+
+            deleteConfirmInput.oninput = () => {
+                deleteConfirmOkBtn.disabled = deleteConfirmInput.value !== entry.title;
+            };
+        }
+
+        async function deleteCurrentEntry() {
+            if (!appState.editingEntryId || !appState.userId) return;
+            
+            const docRef = doc(db, 'artifacts', firebaseConfig.projectId, 'users', appState.userId, 'entries', appState.editingEntryId);
+            try {
+                await deleteDoc(docRef);
                 
-                // Clear view if it was the deleted entry
                 if (appState.currentEntryId === appState.editingEntryId) {
                     appState.currentEntryId = null;
                     document.getElementById('journal-entry-title').textContent = 'Select an Entry';
@@ -555,55 +744,141 @@
                 }
                 
                 closeModal();
-                loadJournalEntries();
-            });
+                deleteConfirmModal.classList.add('hidden');
+            } catch(error) {
+                showError("Failed to delete entry.");
+                console.error("Firestore delete error:", error);
+            }
+        }
+
+        function handlePrint() {
+            const entry = appState.journalEntries.find(e => e.id === appState.editingEntryId);
+            if (!entry) return;
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Print - ${entry.title}</title>
+                        <style>
+                            body { font-family: sans-serif; margin: 2rem; }
+                            h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+                            p { color: #555; margin-top: 0; }
+                            hr { border: 0; border-top: 1px solid #ccc; margin: 1rem 0; }
+                            .content * { max-width: 100%; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>${entry.title}</h1>
+                        <p><strong>Logged:</strong> ${entry.datetime} | <strong>Tags:</strong> ${entry.tags}</p>
+                        <hr>
+                        <div class="content">${entry.content}</div>
+                        <script>
+                            setTimeout(() => { window.print(); window.close(); }, 250);
+                        <\/script>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
         }
 
         // --- Utility Functions ---
-        function parseEntryLinks(text) {
-            if (!text) return '';
-            // This is a placeholder for potential future linking functionality.
-            // For now, it just returns the text.
-            return text;
-        }
-
-        function showError(message) {
-            errorMessage.textContent = message.toUpperCase();
-            errorModal.classList.remove('hidden');
-        }
+        function parseEntryLinks(text) { if (!text) return ''; return text; }
+        function showError(message) { errorMessage.textContent = message.toUpperCase(); errorModal.classList.remove('hidden'); }
         function hideErrorModal() { errorModal.classList.add('hidden'); }
-        
-        function showConfirmModal(message, onConfirm) {
-            confirmMessage.textContent = message.toUpperCase();
-            appState.confirmCallback = onConfirm;
-            confirmModal.classList.remove('hidden');
-        }
-        function hideConfirmModal() {
-            appState.confirmCallback = null;
-            confirmModal.classList.add('hidden');
+        function hideUnsavedChangesModal() { unsavedChangesModal.classList.add('hidden'); }
+
+        // --- Authentication Logic ---
+        async function handleGoogleSignIn() {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error("Google Sign-In Error:", error);
+                showError("Could not sign in with Google. Please try again.");
+            }
         }
 
-        // --- Global Event Listeners ---
-        entryForm.addEventListener('submit', handleFormSubmit);
-        modalCancelBtn.addEventListener('click', closeModal);
-        modalDeleteBtn.addEventListener('click', deleteCurrentEntry);
-        document.getElementById('modal-explicit-close-btn').addEventListener('click', closeModal);
-        
-        confirmOkBtn.addEventListener('click', () => {
-            if (appState.confirmCallback) appState.confirmCallback();
-            hideConfirmModal();
+        async function handleSignOut() {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error("Sign Out Error:", error);
+                showError("Error signing out.");
+            }
+        }
+
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                // User is signed in.
+                appState.userId = user.uid;
+                
+                loginContainer.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                signOutBtn.classList.remove('hidden');
+
+                if (!appState.authReady) {
+                    appState.authReady = true;
+                    renderJournalView();
+                    listenForJournalEntries();
+                }
+            } else {
+                // User is signed out.
+                appState.userId = null;
+                appState.authReady = false;
+                if(appState.unsubscribe) appState.unsubscribe(); // Stop listening to firestore
+                appState.journalEntries = [];
+                appState.currentEntryId = null;
+
+                loginContainer.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+                signOutBtn.classList.add('hidden');
+                mainContentContainer.innerHTML = ''; // Clear main content
+            }
         });
-        confirmCancelBtn.addEventListener('click', hideConfirmModal);
+        
+        // --- Global Event Listeners ---
+        googleSignInBtn.addEventListener('click', handleGoogleSignIn);
+        signOutBtn.addEventListener('click', handleSignOut);
+        entryForm.addEventListener('submit', handleFormSubmit);
+        deleteConfirmOkBtn.addEventListener('click', deleteCurrentEntry);
+        deleteConfirmCancelBtn.addEventListener('click', () => deleteConfirmModal.classList.add('hidden'));
+        unsavedCancelBtn.addEventListener('click', hideUnsavedChangesModal);
+        unsavedDiscardBtn.addEventListener('click', () => {
+            hideUnsavedChangesModal();
+            closeModal();
+        });
+        unsavedSaveBtn.addEventListener('click', () => {
+            entryForm.requestSubmit();
+            hideUnsavedChangesModal();
+        });
         errorOkBtn.addEventListener('click', hideErrorModal);
 
         window.addEventListener('click', (event) => {
-            if (event.target == confirmModal) hideConfirmModal();
+            if (event.target == entryModal) attemptToCloseModal();
             if (event.target == errorModal) hideErrorModal();
-            if (event.target == entryModal) closeModal();
+            if (event.target == unsavedChangesModal) hideUnsavedChangesModal();
+            if (event.target == deleteConfirmModal) deleteConfirmModal.classList.add('hidden');
+            
+            const modalDataBtn = document.getElementById('modal-data-btn');
+            const modalDataDropdown = document.getElementById('modal-data-dropdown');
+            if (modalDataBtn && modalDataDropdown && !modalDataBtn.contains(event.target) && !modalDataDropdown.contains(event.target)) {
+                modalDataDropdown.classList.remove('show');
+            }
+        });
+        
+        document.addEventListener('click', e => {
+            if (e.target.matches('#modal-data-btn')) {
+                document.getElementById('modal-data-dropdown').classList.toggle('show');
+            }
         });
 
-        // --- Initial Load ---
-        renderJournalView();
+        window.addEventListener('beforeunload', (event) => {
+            if (isFormDirty()) {
+                event.preventDefault();
+                event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+            }
+        });
 
     </script>
 </body>
