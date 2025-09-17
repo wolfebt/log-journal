@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Journal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Trebuchet+MS&display=swap" rel="stylesheet">
+    
+    <!-- Quill Rich Text Editor -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+    <style>
+        /* --- Global Theme --- */
+        :root {
+            --bg-main: #212121;
+            --bg-section: #333333;
+            --bg-header: #1f2937;
+            --bg-input: #424242;
+            --bg-input-focus: #616161;
+            --bg-hover: #4f4f4f;
+            --bg-danger: #b71c1c;
+            --bg-danger-hover: #d32f2f;
+            
+            --text-light: #f5f5f5;
+            --text-dark: #212121;
+            --text-subtle: #9e9e9e;
+            
+            --border-main: #9e9e9e;
+            --border-subtle: #616161;
+            --border-focus: #f5f5f5;
+
+            --btn-primary-bg: #4f4f4f;
+            --btn-primary-border: #9e9e9e;
+            --btn-primary-hover-bg: #616161;
+            --btn-primary-hover-border: #f5f5f5;
+
+            --btn-danger-bg: #b71c1c;
+            --btn-danger-border: #9e9e9e;
+            --btn-danger-hover-bg: #d32f2f;
+            --btn-danger-hover-border: #f5f5f5;
+            
+            --font-body: 'Trebuchet MS', sans-serif;
+            --font-display: 'Trebuchet MS', sans-serif;
+
+            --header-height: 4rem; 
+        }
+
+        /* --- Custom Scrollbar --- */
+        ::-webkit-scrollbar { width: 12px; }
+        ::-webkit-scrollbar-track { background: var(--bg-section); }
+        ::-webkit-scrollbar-thumb {
+            background-color: var(--bg-input-focus);
+            border-radius: 6px;
+            border: 3px solid var(--bg-section);
+        }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--border-main); }
+
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-light);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column; 
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* --- Layout --- */
+         .app-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            z-index: 40;
+            background-color: var(--bg-header);
+            border-bottom: 2px solid var(--border-subtle);
+            padding: 0.5rem 1rem;
+        }
+        .app-container {
+            display: flex;
+            flex-grow: 1;
+            padding-top: var(--header-height);
+        }
+        main#main-content {
+            flex-grow: 1;
+            padding: 0;
+            overflow-y: auto;
+        }
+
+        /* --- Global Components --- */
+        .app-header h1 { font-family: var(--font-display); }
+        .modal-backdrop { background-color: rgba(0,0,0,0.75); }
+        .modal-content {
+            background-color: var(--bg-section);
+            border: 2px solid var(--border-main);
+        }
+        .modal-content h2 {
+            font-family: var(--font-display);
+            text-transform: uppercase;
+        }
+        .global-form-label {
+            color: var(--text-subtle);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+        .global-form-input {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-main);
+            color: var(--text-light);
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+        }
+        .global-form-input:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            background-color: var(--bg-input-focus);
+        }
+        .global-form-input.display-only-input {
+            background-color: var(--bg-header);
+            cursor: default;
+            border-color: var(--border-subtle);
+        }
+        .global-form-input.display-only-input:focus {
+            background-color: var(--bg-header);
+            border-color: var(--border-subtle);
+        }
+        .entry-link {
+            color: #63b3ed;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .entry-link:hover { color: #90cdf4; }
+        
+        /* --- File Menu for Modal --- */
+        .file-menu {
+            position: relative;
+            display: inline-block;
+        }
+        .file-menu-button {
+             background-color: var(--bg-section);
+            border: 2px solid var(--border-main);
+            transition: all 0.2s ease;
+            font-weight: bold;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+        }
+        .file-menu-button:hover {
+            border-color: var(--border-focus);
+            background-color: var(--bg-hover);
+        }
+        .file-menu-dropdown {
+            display: none;
+            position: absolute;
+            left: 0;
+            background-color: var(--bg-section);
+            min-width: 160px;
+            border: 2px solid var(--border-main);
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 101;
+            border-radius: 5px;
+            padding: 0.5rem 0;
+        }
+        .file-menu-dropdown.show {
+            display: block;
+        }
+        .file-menu-dropdown button {
+            color: var(--text-light);
+            padding: 0.75rem 1rem;
+            text-decoration: none;
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .file-menu-dropdown button:hover {
+            background-color: var(--bg-hover);
+        }
+
+        /* --- Content-Specific Styles --- */
+        .entry-content h2 {
+            font-family: var(--font-display);
+            font-size: 2.25rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            text-align: center;
+            border-bottom: 2px solid var(--border-subtle);
+            padding-bottom: 0.75rem;
+        }
+        .entry-content h3 {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 0.5rem;
+        }
+        .entry-content p {
+            margin-bottom: 1rem;
+            line-height: 1.7;
+            color: var(--text-light);
+        }
+
+        .btn {
+            font-family: var(--font-body);
+            font-weight: bold;
+            padding: 0.75rem 1rem;
+            border: 2px solid;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            text-shadow: 1px 1px 2px #000;
+        }
+        .btn:hover { text-shadow: none; }
+        .btn:disabled {
+            background-color: var(--bg-input);
+            border-color: var(--border-subtle);
+            color: var(--text-subtle);
+            cursor: not-allowed;
+            text-shadow: none;
+        }
+        
+        .btn-primary { background-color: var(--btn-primary-bg); border-color: var(--btn-primary-border); color: var(--text-light); text-transform: uppercase; }
+        .btn-primary:hover:not(:disabled) { background-color: var(--btn-primary-hover-bg); border-color: var(--btn-primary-hover-border); }
+        .btn-danger { background-color: var(--bg-danger); border-color: var(--btn-danger-border); color: var(--text-light); text-transform: uppercase; }
+        .btn-danger:hover:not(:disabled) { background-color: var(--bg-danger-hover); border-color: var(--btn-danger-hover-border); }
+        .btn-secondary { background-color: var(--bg-section); border-color: var(--text-subtle); color: var(--text-light); }
+        .btn-secondary:hover:not(:disabled) { background-color: var(--bg-hover); border-color: var(--border-focus); }
+
+        /* Quill Dark Theme Overrides */
+        .ql-toolbar {
+            background-color: var(--bg-header);
+            border: 1px solid var(--border-main) !important;
+            border-bottom: none !important;
+            border-top-left-radius: 0.375rem;
+            border-top-right-radius: 0.375rem;
+        }
+        .ql-container.ql-snow {
+            border: 1px solid var(--border-main) !important;
+            border-bottom-left-radius: 0.375rem;
+            border-bottom-right-radius: 0.375rem;
+            background-color: var(--bg-input);
+            color: var(--text-light);
+            font-family: var(--font-body);
+        }
+        .ql-editor { min-height: 200px; }
+        .ql-editor.ql-blank::before { color: var(--text-subtle); font-style: normal; }
+        .ql-snow .ql-stroke { stroke: var(--text-subtle); }
+        .ql-snow .ql-fill, .ql-snow .ql-stroke.ql-fill { fill: var(--text-subtle); }
+        .ql-snow.ql-toolbar button:hover .ql-stroke, .ql-snow .ql-toolbar button:hover .ql-stroke,
+        .ql-snow.ql-toolbar button.ql-active .ql-stroke, .ql-snow .ql-toolbar button.ql-active .ql-stroke { stroke: var(--text-light); }
+        .ql-snow.ql-toolbar button:hover .ql-fill, .ql-snow .ql-toolbar button:hover .ql-fill,
+        .ql-snow.ql-toolbar button.ql-active .ql-fill, .ql-snow .ql-toolbar button.ql-active .ql-fill { fill: var(--text-light); }
+        .ql-snow .ql-picker-options { background-color: var(--bg-section); border-color: var(--border-main) !important; }
+        .ql-snow .ql-picker-item:hover, .ql-snow .ql-picker-label:hover { color: var(--text-light); }
+        .ql-snow .ql-picker-item.ql-selected { color: var(--text-light); }
+        .ql-snow .ql-tooltip { background-color: var(--bg-section); border: 1px solid var(--border-main); box-shadow: none; color: var(--text-light); }
+        .ql-snow .ql-tooltip input[type=text] { background-color: var(--bg-input); border: 1px solid var(--border-main); color: var(--text-light); }
+        .ql-snow .ql-tooltip a.ql-action::after { border-radius: 0.25rem; background-color: var(--btn-primary-bg); color: var(--text-light); padding: 4px 8px; }
+        
+        /* Prose styles for rendered Quill content */
+        .prose { color: var(--text-light); }
+        .prose h1, .prose h2, .prose h3, .prose h4, .prose strong { color: var(--text-light); }
+        .prose a { color: #63b3ed; }
+        .prose a:hover { color: #90cdf4; }
+        .prose blockquote { color: var(--text-subtle); border-left-color: var(--border-main); }
+        .prose code { background-color: var(--bg-header); color: #a5f3fc; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-weight: bold; }
+        .prose .ql-syntax { background-color: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 5px; white-space: pre-wrap; }
+
+    </style>
+</head>
+<body>
+    <!-- App Header -->
+    <header class="app-header flex justify-between items-center px-4">
+        <div class="w-16"></div> <!-- Left Spacer -->
+        <div class="text-center">
+            <h1 class="text-xl font-bold text-gray-100 whitespace-nowrap">LOG JOURNAL</h1>
+            <p class="text-xs text-gray-400 uppercase">A Personal Digital Log</p>
+        </div>
+        <div class="w-16 flex justify-end">
+             <button id="sign-out-btn" title="Sign Out" class="btn btn-secondary hidden p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+             </button>
+        </div>
+    </header>
+    
+    <!-- Login Container -->
+    <div id="login-container" class="flex items-center justify-center min-h-screen">
+        <div class="text-center p-8 bg-gray-800 rounded-lg shadow-lg">
+            <h1 class="text-2xl font-bold text-gray-100 mb-2">Log Journal</h1>
+            <p class="text-gray-400 mb-6">Sign in with Google to continue</p>
+            <button id="google-signin-btn" class="btn btn-primary flex items-center justify-center w-full max-w-xs mx-auto">
+                <svg class="w-6 h-6 mr-3" viewBox="0 0 48 48"><path fill="#4285F4" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#34A853" d="M43.611 20.083H24v8h11.303c-1.649 4.657-6.08 8-11.303 8V44c5.268 0 10.046-1.947 13.611-5.657c3.566-3.71 5.657-8.854 5.657-14.426c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#FBBC05" d="M9.961 18.309c-1.237 2.334-1.961 4.96-1.961 7.691s.724 5.357 1.961 7.691l-5.657 5.657C2.345 34.046 0 29.268 0 24s2.345-10.046 6.304-13.696z"></path><path fill="#EA4335" d="M24 36c-5.221 0-9.657-3.341-11.303-8h-8.697c1.649 4.657 6.08 8 11.303 8s9.657-3.341 11.303-8h8.697c-1.649 4.657-6.08 8-11.303 8z"></path></svg>
+                Sign in with Google
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App Container (initially hidden) -->
+    <div class="app-container hidden">
+        <!-- Main Content Area -->
+        <main id="main-content"></main>
+    </div>
+
+    <!-- Main Entry Modal -->
+    <div id="entry-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-3/4 max-w-6xl max-h-[90vh] overflow-y-auto flex flex-col relative">
+            <div class="p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="file-menu">
+                        <button id="modal-data-btn" class="file-menu-button">DATA</button>
+                        <div id="modal-data-dropdown" class="file-menu-dropdown"></div>
+                    </div>
+                    <h2 id="modal-title" class="text-2xl font-bold">Manage Entry</h2>
+                    <div class="w-24"></div> <!-- Spacer -->
+                </div>
+                <form id="entry-form">
+                    <div id="form-fields" class="space-y-6">
+                        <!-- Form fields are dynamically generated here -->
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-confirm-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-lg p-8">
+            <h2 class="text-xl font-bold mb-4">Confirm Deletion</h2>
+            <p id="delete-confirm-message" class="text-gray-400 mb-4">This action is permanent. To confirm, please type the full title of the entry: <strong id="delete-confirm-title" class="text-light"></strong></p>
+            <input type="text" id="delete-confirm-input" class="global-form-input mb-6" placeholder="Type title to confirm...">
+            <div class="flex justify-end gap-2">
+                <button id="delete-confirm-cancel-btn" class="btn btn-secondary">CANCEL</button>
+                <button id="delete-confirm-ok-btn" class="btn btn-danger" disabled>DELETE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unsaved Changes Modal -->
+    <div id="unsaved-changes-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-lg p-8">
+            <h2 class="text-xl font-bold mb-4">Unsaved Changes</h2>
+            <p class="text-gray-400 mb-6">You have unsaved changes. Are you sure you want to continue?</p>
+            <div class="flex justify-end gap-3">
+                <button id="unsaved-cancel-btn" class="btn btn-secondary">CANCEL</button>
+                <button id="unsaved-discard-btn" class="btn btn-danger">DISCARD</button>
+                <button id="unsaved-save-btn" class="btn btn-primary">SAVE & CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="error-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-md p-8">
+            <h2 class="text-xl font-bold mb-4 text-red-500">Error</h2>
+            <p id="error-message" class="text-gray-400 mb-6">Something went wrong.</p>
+            <div class="flex justify-end">
+                <button id="error-ok-btn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- Firebase SDK Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+        import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+        // --- Firebase Configuration & Initialization ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyDIOV7lbfI5YsN_2LG_dSg-xNMSEqz2PM0",
+          authDomain: "log-journal-95f36.firebaseapp.com",
+          projectId: "log-journal-95f36",
+          storageBucket: "log-journal-95f36.appspot.com",
+          messagingSenderId: "756913638787",
+          appId: "1:756913638787:web:7f005c9406b09468e1bab6",
+          measurementId: "G-WPBTFBQ5SS"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        setLogLevel('debug');
+
+        // --- Application Configuration ---
+        const entryConfig = {
+            label: 'Journal Entry',
+            fields: {
+                title: { type: 'text', required: true },
+                tags: { type: 'text', label: 'Tags (comma-separated)' },
+                content: { type: 'textarea' },
+            }
+        };
+
+        // --- Application State ---
+        const appState = {
+            userId: null,
+            authReady: false,
+            editingEntryId: null,
+            journalEntries: [],
+            currentEntryId: null,
+            initialFormState: null,
+            unsubscribe: null, // To store the onSnapshot listener
+        };
+        
+        // --- UI Element References ---
+        const loginContainer = document.getElementById('login-container');
+        const googleSignInBtn = document.getElementById('google-signin-btn');
+        const signOutBtn = document.getElementById('sign-out-btn');
+        const appContainer = document.querySelector('.app-container');
+        const mainContentContainer = document.getElementById('main-content');
+        const entryModal = document.getElementById('entry-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const entryForm = document.getElementById('entry-form');
+        const formFieldsContainer = document.getElementById('form-fields');
+        const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+        const deleteConfirmTitle = document.getElementById('delete-confirm-title');
+        const deleteConfirmInput = document.getElementById('delete-confirm-input');
+        const deleteConfirmOkBtn = document.getElementById('delete-confirm-ok-btn');
+        const deleteConfirmCancelBtn = document.getElementById('delete-confirm-cancel-btn');
+        const unsavedChangesModal = document.getElementById('unsaved-changes-modal');
+        const unsavedCancelBtn = document.getElementById('unsaved-cancel-btn');
+        const unsavedDiscardBtn = document.getElementById('unsaved-discard-btn');
+        const unsavedSaveBtn = document.getElementById('unsaved-save-btn');
+        const errorModal = document.getElementById('error-modal');
+        const errorMessage = document.getElementById('error-message');
+        const errorOkBtn = document.getElementById('error-ok-btn');
+
+        // --- View Rendering ---
+        function renderJournalView() {
+            mainContentContainer.innerHTML = `
+                <div class="flex" style="height: calc(100vh - var(--header-height));">
+                    <div id="journal-directory-main" class="w-80 flex-shrink-0 bg-gray-800 p-4 overflow-y-auto border-r-2 border-gray-700">
+                        <div class="mb-4">
+                            <input type="search" id="search-input" placeholder="Search entries..." class="global-form-input">
+                        </div>
+                        <button id="add-journal-entry-btn" class="btn btn-primary w-full mb-4">New Log Entry</button>
+                        <ul id="journal-directory-list"></ul>
+                    </div>
+                    <div class="flex-grow p-6 overflow-y-auto">
+                        <div class="entry-content prose prose-invert max-w-none" id="entry-content-main">
+                            <h2 id="journal-entry-title">Select an Entry</h2>
+                            <div id="journal-entry-body"><p class="text-gray-400">Please select an entry from the directory on the left, or create a new one.</p></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('add-journal-entry-btn').addEventListener('click', () => openModal(null, {}));
+            document.getElementById('search-input').addEventListener('input', renderJournalDirectory);
+        }
+
+        // --- Data Handling & Firestore ---
+        function listenForJournalEntries() {
+            if (appState.unsubscribe) appState.unsubscribe(); // Detach old listener if exists
+            if (!appState.userId) return;
+
+            const entriesCollection = collection(db, 'artifacts', firebaseConfig.projectId, 'users', appState.userId, 'entries');
+            appState.unsubscribe = onSnapshot(entriesCollection, (snapshot) => {
+                appState.journalEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Convert Firestore Timestamps to readable strings
+                appState.journalEntries.forEach(entry => {
+                    if (entry.createdAt && entry.createdAt.toDate) {
+                        entry.datetime = entry.createdAt.toDate().toLocaleString([], { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    }
+                });
+
+                renderJournalDirectory();
+
+                if (appState.currentEntryId && appState.journalEntries.some(e => e.id === appState.currentEntryId)) {
+                    displayJournalEntry(appState.currentEntryId);
+                } else if (appState.journalEntries.length > 0) {
+                    const sortedEntries = [...appState.journalEntries].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                    if (sortedEntries.length > 0) {
+                       displayJournalEntry(sortedEntries[0].id);
+                    }
+                } else {
+                    // Handle case with no entries
+                    const entryTitle = document.getElementById('journal-entry-title');
+                    const entryBody = document.getElementById('journal-entry-body');
+                    if(entryTitle) entryTitle.textContent = 'Welcome!';
+                    if(entryBody) entryBody.innerHTML = '<p class="text-gray-400">Create your first log entry to get started.</p>';
+                }
+            }, (error) => {
+                showError("Could not connect to the database. Please check your connection and refresh.");
+                console.error("Firestore listener error:", error);
+            });
+        }
+
+        function renderJournalDirectory() {
+            const container = document.getElementById('journal-directory-list');
+            if (!container) return;
+
+            const searchInput = document.getElementById('search-input');
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+            let filteredEntries = appState.journalEntries;
+
+            if (searchTerm) {
+                filteredEntries = appState.journalEntries.filter(entry => {
+                    const titleMatch = entry.title?.toLowerCase().includes(searchTerm);
+                    const tagsMatch = entry.tags?.toLowerCase().includes(searchTerm);
+                    const datetimeMatch = entry.datetime?.toLowerCase().includes(searchTerm);
+                    
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = entry.content || '';
+                    const contentText = tempDiv.textContent || tempDiv.innerText || '';
+                    const contentMatch = contentText.toLowerCase().includes(searchTerm);
+                    
+                    return titleMatch || tagsMatch || contentMatch || datetimeMatch;
+                });
+            }
+
+            const sortedEntries = [...filteredEntries].sort((a, b) => {
+                const timeA = a.createdAt?.seconds || 0;
+                const timeB = b.createdAt?.seconds || 0;
+                return timeB - timeA;
+            });
+
+            if (sortedEntries.length === 0) {
+                container.innerHTML = `<p class="text-center text-sm text-subtle">No entries found.</p>`;
+                return;
+            }
+
+            container.innerHTML = sortedEntries.map(entry => `
+                <li>
+                    <a href="#" class="block p-2 rounded hover:bg-gray-700 ${entry.id === appState.currentEntryId ? 'bg-gray-700' : ''}" data-entry-id="${entry.id}">
+                        <p class="font-bold text-sm text-light">${entry.title || 'Untitled'}</p>
+                        <p class="text-xs text-subtle">${entry.datetime || 'No Date'}</p>
+                    </a>
+                </li>
+            `).join('');
+            
+            container.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    displayJournalEntry(link.dataset.entryId);
+                });
+                link.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    const entryId = link.dataset.entryId;
+                    const entry = appState.journalEntries.find(e => e.id === entryId);
+                    if (entry) {
+                        openModal(entry.id, entry);
+                    }
+                });
+            });
+        }
+
+        function displayJournalEntry(entryId) {
+            const entryTitle = document.getElementById('journal-entry-title');
+            const entryBody = document.getElementById('journal-entry-body');
+
+            if(!entryTitle || !entryBody) return;
+
+            const entry = appState.journalEntries.find(e => e.id === entryId);
+            appState.currentEntryId = entryId;
+
+            if (entry) {
+                entryTitle.textContent = entry.title || 'Untitled';
+                let contentHtml = `<p class="text-sm text-subtle"><strong>Logged:</strong> ${entry.datetime || 'N/A'} | <strong>Tags:</strong> ${entry.tags || 'None'}</p>`;
+                contentHtml += parseEntryLinks(entry.content || '<p class="text-gray-400">No content for this entry.</p>');
+                
+                entryBody.innerHTML = contentHtml;
+            } else {
+                entryTitle.textContent = 'Entry Not Found';
+                entryBody.innerHTML = '<p class="text-red-400">The requested entry could not be found.</p>';
+                appState.currentEntryId = null;
+            }
+            renderJournalDirectory(); // Re-render to highlight the active entry
+        }
+
+        // --- Modal & Form Logic ---
+        function getFormState() {
+            if (!entryForm) return null;
+            const formData = new FormData(entryForm);
+            const data = Object.fromEntries(formData.entries());
+            return JSON.stringify(data);
+        }
+
+        function isFormDirty() {
+            if (entryModal.classList.contains('hidden')) return false;
+            return appState.initialFormState !== getFormState();
+        }
+
+        function attemptToCloseModal() {
+            if (isFormDirty()) {
+                unsavedChangesModal.classList.remove('hidden');
+            } else {
+                closeModal();
+            }
+        }
+
+        function createFormFieldHtml(fieldKey, fieldConfig, savedValue) {
+            const labelText = (fieldConfig.label || fieldKey.replace(/_/g, ' ')).toUpperCase();
+            let fieldHtml = '';
+
+            switch (fieldConfig.type) {
+                case 'textarea':
+                    fieldHtml = `<div id="editor-${fieldKey}" class="quill-editor-container"></div><input type="hidden" id="${fieldKey}" name="${fieldKey}">`;
+                    break;
+                case 'text':
+                    fieldHtml = `<input type="text" id="${fieldKey}" name="${fieldKey}" value="${savedValue || ''}" class="global-form-input">`;
+                    break;
+            }
+
+            return `<div><label for="${fieldKey}" class="global-form-label">${labelText}</label>${fieldHtml}</div>`;
+        }
+
+        function openModal(entryId = null, data = {}) {
+            appState.editingEntryId = entryId;
+            modalTitle.textContent = entryId ? 'Edit Log Entry' : 'Create New Log Entry';
+            
+            const formHtml = Object.keys(entryConfig.fields).map(key => {
+                const config = entryConfig.fields[key];
+                return createFormFieldHtml(key, config, data[key]);
+            }).join('');
+            formFieldsContainer.innerHTML = formHtml;
+
+            // Initialize Quill editor
+            const editorContainer = formFieldsContainer.querySelector('#editor-content');
+            if (editorContainer) {
+                const hiddenInput = document.getElementById('content');
+                const toolbarOptions = [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['blockquote', 'code-block'],
+                    ['link'],
+                    ['clean']
+                ];
+                const quill = new Quill(editorContainer, {
+                    modules: { toolbar: toolbarOptions },
+                    theme: 'snow',
+                    placeholder: 'Start writing your log entry...'
+                });
+                quill.root.innerHTML = data.content || '';
+                hiddenInput.value = data.content || '';
+                quill.on('text-change', () => { 
+                    hiddenInput.value = quill.root.innerHTML; 
+                });
+            }
+            
+            // Setup Data Dropdown Menu
+            const modalDataDropdown = document.getElementById('modal-data-dropdown');
+            let dropdownHtml = `<button id="modal-save-btn">Save</button>`;
+            if (entryId) {
+                dropdownHtml += `<button id="modal-print-btn">Print</button>`;
+                dropdownHtml += `<button id="modal-delete-btn" class="text-red-400 hover:!bg-red-800">Delete</button>`;
+            }
+            dropdownHtml += `<button id="modal-close-btn">Close</button>`;
+            modalDataDropdown.innerHTML = dropdownHtml;
+
+            document.getElementById('modal-save-btn').addEventListener('click', () => entryForm.requestSubmit());
+            document.getElementById('modal-close-btn').addEventListener('click', attemptToCloseModal);
+            if (entryId) {
+                document.getElementById('modal-print-btn').addEventListener('click', handlePrint);
+                document.getElementById('modal-delete-btn').addEventListener('click', showDeleteConfirmation);
+            }
+
+            entryModal.classList.remove('hidden');
+            
+            setTimeout(() => {
+                appState.initialFormState = getFormState();
+            }, 0);
+        }
+
+        function closeModal() {
+            appState.editingEntryId = null;
+            appState.initialFormState = null;
+            entryForm.reset();
+            entryModal.classList.add('hidden');
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            if (!appState.userId) return showError("You must be signed in to save entries.");
+
+            const formData = new FormData(entryForm);
+            const data = Object.fromEntries(formData.entries());
+            
+            const entriesCollection = collection(db, 'artifacts', firebaseConfig.projectId, 'users', appState.userId, 'entries');
+
+            try {
+                if (appState.editingEntryId) {
+                    const docRef = doc(db, entriesCollection.path, appState.editingEntryId);
+                    await updateDoc(docRef, data);
+                } else {
+                    data.createdAt = serverTimestamp();
+                    const newDocRef = await addDoc(entriesCollection, data);
+                    appState.currentEntryId = newDocRef.id;
+                }
+                closeModal();
+            } catch (error) {
+                showError("Failed to save entry. Please try again.");
+                console.error("Firestore save error:", error);
+            }
+        }
+
+        function showDeleteConfirmation() {
+            const entry = appState.journalEntries.find(e => e.id === appState.editingEntryId);
+            if (!entry) return;
+
+            deleteConfirmTitle.textContent = entry.title;
+            deleteConfirmInput.value = '';
+            deleteConfirmOkBtn.disabled = true;
+            deleteConfirmModal.classList.remove('hidden');
+
+            deleteConfirmInput.oninput = () => {
+                deleteConfirmOkBtn.disabled = deleteConfirmInput.value !== entry.title;
+            };
+        }
+
+        async function deleteCurrentEntry() {
+            if (!appState.editingEntryId || !appState.userId) return;
+            
+            const docRef = doc(db, 'artifacts', firebaseConfig.projectId, 'users', appState.userId, 'entries', appState.editingEntryId);
+            try {
+                await deleteDoc(docRef);
+                
+                if (appState.currentEntryId === appState.editingEntryId) {
+                    appState.currentEntryId = null;
+                    document.getElementById('journal-entry-title').textContent = 'Select an Entry';
+                    document.getElementById('journal-entry-body').innerHTML = '<p>Please select an entry.</p>';
+                }
+                
+                closeModal();
+                deleteConfirmModal.classList.add('hidden');
+            } catch(error) {
+                showError("Failed to delete entry.");
+                console.error("Firestore delete error:", error);
+            }
+        }
+
+        function handlePrint() {
+            const entry = appState.journalEntries.find(e => e.id === appState.editingEntryId);
+            if (!entry) return;
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Print - ${entry.title}</title>
+                        <style>
+                            body { font-family: sans-serif; margin: 2rem; }
+                            h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+                            p { color: #555; margin-top: 0; }
+                            hr { border: 0; border-top: 1px solid #ccc; margin: 1rem 0; }
+                            .content * { max-width: 100%; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>${entry.title}</h1>
+                        <p><strong>Logged:</strong> ${entry.datetime} | <strong>Tags:</strong> ${entry.tags}</p>
+                        <hr>
+                        <div class="content">${entry.content}</div>
+                        <script>
+                            setTimeout(() => { window.print(); window.close(); }, 250);
+                        <\/script>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        // --- Utility Functions ---
+        function parseEntryLinks(text) { if (!text) return ''; return text; }
+        function showError(message) { errorMessage.textContent = message.toUpperCase(); errorModal.classList.remove('hidden'); }
+        function hideErrorModal() { errorModal.classList.add('hidden'); }
+        function hideUnsavedChangesModal() { unsavedChangesModal.classList.add('hidden'); }
+
+        // --- Authentication Logic ---
+        async function handleGoogleSignIn() {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error("Google Sign-In Error:", error);
+                showError("Could not sign in with Google. Please try again.");
+            }
+        }
+
+        async function handleSignOut() {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error("Sign Out Error:", error);
+                showError("Error signing out.");
+            }
+        }
+
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                // User is signed in.
+                appState.userId = user.uid;
+                
+                loginContainer.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                signOutBtn.classList.remove('hidden');
+
+                if (!appState.authReady) {
+                    appState.authReady = true;
+                    renderJournalView();
+                    listenForJournalEntries();
+                }
+            } else {
+                // User is signed out.
+                appState.userId = null;
+                appState.authReady = false;
+                if(appState.unsubscribe) appState.unsubscribe(); // Stop listening to firestore
+                appState.journalEntries = [];
+                appState.currentEntryId = null;
+
+                loginContainer.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+                signOutBtn.classList.add('hidden');
+                mainContentContainer.innerHTML = ''; // Clear main content
+            }
+        });
+        
+        // --- Global Event Listeners ---
+        googleSignInBtn.addEventListener('click', handleGoogleSignIn);
+        signOutBtn.addEventListener('click', handleSignOut);
+        entryForm.addEventListener('submit', handleFormSubmit);
+        deleteConfirmOkBtn.addEventListener('click', deleteCurrentEntry);
+        deleteConfirmCancelBtn.addEventListener('click', () => deleteConfirmModal.classList.add('hidden'));
+        unsavedCancelBtn.addEventListener('click', hideUnsavedChangesModal);
+        unsavedDiscardBtn.addEventListener('click', () => {
+            hideUnsavedChangesModal();
+            closeModal();
+        });
+        unsavedSaveBtn.addEventListener('click', () => {
+            entryForm.requestSubmit();
+            hideUnsavedChangesModal();
+        });
+        errorOkBtn.addEventListener('click', hideErrorModal);
+
+        window.addEventListener('click', (event) => {
+            if (event.target == entryModal) attemptToCloseModal();
+            if (event.target == errorModal) hideErrorModal();
+            if (event.target == unsavedChangesModal) hideUnsavedChangesModal();
+            if (event.target == deleteConfirmModal) deleteConfirmModal.classList.add('hidden');
+            
+            const modalDataBtn = document.getElementById('modal-data-btn');
+            const modalDataDropdown = document.getElementById('modal-data-dropdown');
+            if (modalDataBtn && modalDataDropdown && !modalDataBtn.contains(event.target) && !modalDataDropdown.contains(event.target)) {
+                modalDataDropdown.classList.remove('show');
+            }
+        });
+        
+        document.addEventListener('click', e => {
+            if (e.target.matches('#modal-data-btn')) {
+                document.getElementById('modal-data-dropdown').classList.toggle('show');
+            }
+        });
+
+        window.addEventListener('beforeunload', (event) => {
+            if (isFormDirty()) {
+                event.preventDefault();
+                event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+            }
+        });
+
+    </script>
+</body>
+</html>
