@@ -349,7 +349,7 @@
             </button>
             <button id="sign-out-btn" title="Sign Out" class="btn btn-secondary hidden p-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
             </button>
         </div>
@@ -487,16 +487,20 @@
         import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         // --- Firebase Configuration & Initialization ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyDIOV7lbfI5YsN_2LG_dSg-xNMSEqz2PM0",
-          authDomain: "log-journal-95f36.firebaseapp.com",
-          projectId: "log-journal-95f36",
-          storageBucket: "log-journal-95f36.appspot.com",
-          messagingSenderId: "756913638787",
-          appId: "1:756913638787:web:7f005c9406b09468e1bab6",
-          measurementId: "G-WPBTFBQ5SS"
-        };
-        
+        // This configuration is dynamically loaded from the environment.
+        // The hardcoded fallback is for local development and testing purposes.
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "YOUR_API_KEY", // Replace with your actual config for local testing
+                authDomain: "your-project-id.firebaseapp.com",
+                projectId: "your-project-id",
+                storageBucket: "your-project-id.appspot.com",
+                messagingSenderId: "your-sender-id",
+                appId: "your-app-id"
+            };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -641,7 +645,7 @@
             if (appState.unsubscribe) appState.unsubscribe();
             if (!appState.userId) return;
 
-            const entriesCollection = collection(db, 'artifacts', firebaseConfig.projectId, 'users', appState.userId, 'entries');
+            const entriesCollection = collection(db, 'artifacts', appId, 'users', appState.userId, 'entries');
             appState.unsubscribe = onSnapshot(entriesCollection, (snapshot) => {
                 appState.journalEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
@@ -874,7 +878,7 @@
             const formData = new FormData(entryForm);
             const data = Object.fromEntries(formData.entries());
             
-            const entriesCollection = collection(db, 'artifacts', firebaseConfig.projectId, 'users', appState.userId, 'entries');
+            const entriesCollection = collection(db, 'artifacts', appId, 'users', appState.userId, 'entries');
 
             try {
                 if (appState.editingEntryId) {
@@ -909,7 +913,7 @@
         async function deleteCurrentEntry() {
             if (!appState.editingEntryId || !appState.userId) return;
             
-            const docRef = doc(db, 'artifacts', firebaseConfig.projectId, 'users', appState.userId, 'entries', appState.editingEntryId);
+            const docRef = doc(db, 'artifacts', appId, 'users', appState.userId, 'entries', appState.editingEntryId);
             try {
                 await deleteDoc(docRef);
                 
@@ -1175,6 +1179,4 @@
     </script>
 </body>
 </html>
-
-
 
