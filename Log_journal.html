@@ -340,7 +340,7 @@
     <header class="app-header flex justify-between items-center px-4">
         <div class="w-24"></div> <!-- Left Spacer -->
         <div class="text-center">
-            <h1 class="text-xl font-bold text-gray-100 whitespace-nowrap">LOG JOURNAL</h1>
+            <h1 class="text-xl font-bold text-gray-100 whitespace-nownowrap">LOG JOURNAL</h1>
             <p class="text-xs text-gray-400 uppercase">A Personal Digital Log</p>
         </div>
         <div class="w-24 flex justify-end items-center gap-2">
@@ -1089,6 +1089,7 @@
             
             onAuthStateChanged(auth, user => {
                 if (user) {
+                    // User is signed in.
                     appState.userId = user.uid;
                     loginContainer.classList.add('hidden');
                     appContainer.classList.remove('hidden');
@@ -1101,6 +1102,7 @@
                         listenForJournalEntries();
                     }
                 } else {
+                    // User is signed out.
                     appState.userId = null;
                     appState.authReady = false;
                     if(appState.unsubscribe) appState.unsubscribe();
@@ -1173,4 +1175,6 @@
     </script>
 </body>
 </html>
+
+
 
